@@ -9,4 +9,5 @@ module fp_reg_file (
     reg [31:0] mem [0:31];
     assign rd1 = 32'd0;
     assign rd2 = 32'd0;
+    assign rd3 = 32'd0;
 endmodule
