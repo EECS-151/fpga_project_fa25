@@ -20,12 +20,6 @@ ISA_TESTS_FST           := $(addprefix sim/isa/,$(subst .hex,.fst,$(ISA_TESTS_FI
 C_TESTS                 := $(subst /cygdrive/c/,C:/,$(shell find $(ABS_TOP)/../software/c_tests -type f -name "*.c"))
 C_TESTS_FILES           := $(notdir $(C_TESTS))
 C_TESTS_FST             := $(addprefix sim/c_tests/,$(subst .c,.fst,$(C_TESTS_FILES)))
-SMALL_TESTS             := $(subst /cygdrive/c/,C:/,$(shell find $(ABS_TOP)/../software/small -type f -name "*.c"))
-SMALL_TESTS_FILES       := $(notdir $(SMALL_TESTS))
-SMALL_TESTS_FST         := $(addprefix sim/small/,$(subst .c,.fst,$(SMALL_TESTS_FILES)))
-MYPORT                  ?= MYPORT_NOT_SET
-
-# all: build/impl/$(TOP).bit
 
 sim/%.tb: sim/%.v $(RTL) $(SIM_MODELS)
 	cd sim && $(VCS) $(VCS_OPTS) -o $*.tb $(RTL) $(SIM_MODELS) $*.v -top $* -top glbl
@@ -49,6 +43,16 @@ sim/isa/%.fst: sim/isa/isa_tb.tbi $(ABS_TOP)/../software/riscv-isa-tests/%.hex
 
 isa-tests: $(ISA_TESTS_FST)
 
+# ISA Tests - FPCPU
+sim/isa/fpisa_tb.tbi: sim/fpisa_tb.v $(RTL) $(SIM_MODELS)
+	mkdir -p sim/isa
+	cd sim/isa && $(IVERILOG) $(IVERILOG_OPTS) -o fpisa_tb.tbi ../fpisa_tb.v $(RTL) $(SIM_MODELS)
+
+sim/isa/%.fst: sim/isa/fpisa_tb.tbi $(ABS_TOP)/../software/riscv-isa-tests/%.hex
+	cd sim/isa && $(VVP) fpisa_tb.tbi -fst +hex_file=$(word 2,$^) +test_name=$(basename $(notdir $(word 2,$^))) |& tee $(basename $(notdir $(word 2,$^))).log
+
+isa-tests-fp: $(ISA_TESTS_FST)
+
 # C Tests
 sim/c_tests/c_tests_tb.tbi: sim/c_tests_tb.v $(RTL) $(SIM_MODELS)
 	mkdir -p sim/c_tests
@@ -59,15 +63,28 @@ sim/c_tests/%.fst: sim/c_tests/c_tests_tb.tbi $(ABS_TOP)/../software/c_tests/%
 
 c-tests: $(C_TESTS_FST)
 
-# Small Tests
-sim/small/small_tb.tbi: sim/small_tb.v $(RTL) $(SIM_MODELS)
-	mkdir -p sim/small
-	cd sim/small && $(IVERILOG) $(IVERILOG_OPTS) -o small_tb.tbi ../small_tb.v $(RTL) $(SIM_MODELS)
+# C Tests - FPCPU
+sim/c_tests/fpc_tests_tb.tbi: sim/fpc_tests_tb.v $(RTL) $(SIM_MODELS)
+	mkdir -p sim/c_tests
+	cd sim/c_tests && $(IVERILOG) $(IVERILOG_OPTS) -o fpc_tests_tb.tbi ../fpc_tests_tb.v $(RTL) $(SIM_MODELS)
 
-sim/small/%.fst: sim/small/small_tb.tbi $(ABS_TOP)/../software/small/%
-	@cd sim/small && $(VVP) small_tb.tbi -fst +hex_file=$(word 2,$^)/$*.hex +test_name=$(basename $(notdir $(word 2,$^))) |& tee $(basename $(notdir $(word 2,$^))).log
+sim/c_tests/%.fst: sim/c_tests/fpc_tests_tb.tbi $(ABS_TOP)/../software/c_tests/%
+	cd sim/c_tests && $(VVP) fpc_tests_tb.tbi -fst +hex_file=$(word 2,$^)/$*.hex +test_name=$(basename $(notdir $(word 2,$^))) |& tee $(basename $(notdir $(word 2,$^))).log
 
-small-tests: $(SMALL_TESTS_FST)
+c-tests: $(C_TESTS_FST)
+
+# Single FP C test: fpmmult
+sim/c_tests/fpmmult.fst: sim/c_tests/fpc_tests_tb.tbi $(ABS_TOP)/../software/fpmmult/fpmmult.hex
+	cd sim/c_tests && $(VVP) fpc_tests_tb.tbi -fst +hex_file=$(word 2,$^) +test_name=fpmmult |& tee fpmmult.log
+
+fpmmult-test: sim/c_tests/fpmmult.fst
+
+# Single C test: mmult
+sim/c_tests/mmult.fst: sim/c_tests/c_tests_tb.tbi $(ABS_TOP)/../software/mmult/mmult.hex
+	cd sim/c_tests && $(VVP) c_tests_tb.tbi -fst +hex_file=$(word 2,$^) +test_name=mmult |& tee mmult.log
+
+mmult-test: sim/c_tests/mmult.fst
+
 
 build/target.tcl: $(RTL) $(CONSTRAINTS)
 	mkdir -p build
@@ -109,12 +126,6 @@ program: build/impl/$(TOP).bit $(SCRIPTS)/program.tcl
 program-force:
 	cd build/impl && $(VIVADO) $(VIVADO_OPTS) -source $(SCRIPTS)/program.tcl
 
-remote: build/impl/$(TOP).bit $(SCRIPTS)/program.tcl
-	cd build/impl && $(VIVADO) $(VIVADO_OPTS) -source $(SCRIPTS)/remote.tcl
-
-remote-force:
-	cd build/impl && $(VIVADO) $(VIVADO_OPTS) -source $(SCRIPTS)/remote.tcl
-
 vivado: build
 	cd build && nohup $(VIVADO) </dev/null >/dev/null 2>&1 &
 
@@ -135,10 +146,10 @@ clean-sim:
 	sim/*.tb sim/*.daidir sim/csrc \
 	sim/ucli.key sim/*.vpd sim/*.vcd \
 	sim/*.tbi sim/*.fst sim/*.jou sim/*.log sim/*.out \
-	sim/isa sim/c_tests sim/small
+	sim/isa sim/c_tests
 
 clean-build:
 	rm -rf ./build
 
-.PHONY: setup synth impl program program-force remote remote-force vivado all clean-build clean-sim %.tb
+.PHONY: setup synth impl program program-force vivado all clean-build clean-sim %.tb
 .PRECIOUS: sim/%.tb sim/%.tbi sim/%.fst sim/%.vpd
