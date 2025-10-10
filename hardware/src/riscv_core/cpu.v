@@ -74,6 +74,17 @@ module cpu #(
         .wd(wd),
         .rd1(rd1), .rd2(rd2)
     );
+    wire fp_we;
+    wire [4:0] fp_ra1, fp_ra2, fp_ra3, fp_wa;
+    wire [31:0] fp_wd;
+    wire [31:0] fp_rd1, fp_rd2, fp_rd3;
+    fp_reg_file fprf (
+        .clk(clk),
+        .we(fp_we),
+        .ra1(fp_ra1), .ra2(fp_ra2), .ra3(fp_ra3), .wa(fp_wa),
+        .wd(fp_wd),
+        .rd1(fp_rd1), .rd2(fp_rd2), .rd3(fp_rd3)
+    )
 
     // On-chip UART
     //// UART Receiver
