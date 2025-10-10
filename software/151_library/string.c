@@ -26,3 +26,12 @@ uint32_t strlen(const int8_t* s) {
     for ( ; s[i] != '\0'; i++) ;
     return i;
 }
+
+void* memcpy(void* dest, void* src, uint32_t len) {
+    // 
+
+    for (int i = 0; i < len; i++) {
+        *(char*)(dest + i) = *(char*)(src + i);
+    }
+    return dest;
+}
