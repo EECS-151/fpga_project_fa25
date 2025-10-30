@@ -43,6 +43,8 @@ sim/isa/%.fst: sim/isa/isa_tb.tbi $(ABS_TOP)/../software/riscv-isa-tests/%.hex
 
 isa-tests: $(ISA_TESTS_FST)
 
+### UNUSED TESTS IN RUN_ALL_SIMS
+
 # ISA Tests - FPCPU
 sim/isa/fpisa_tb.tbi: sim/fpisa_tb.v $(RTL) $(SIM_MODELS)
 	mkdir -p sim/isa
@@ -84,6 +86,8 @@ sim/c_tests/mmult.fst: sim/c_tests/c_tests_tb.tbi $(ABS_TOP)/../software/mmult/m
 	cd sim/c_tests && $(VVP) c_tests_tb.tbi -fst +hex_file=$(word 2,$^) +test_name=mmult |& tee mmult.log
 
 mmult-test: sim/c_tests/mmult.fst
+
+### END UNUSED TESTS
 
 
 build/target.tcl: $(RTL) $(CONSTRAINTS)
