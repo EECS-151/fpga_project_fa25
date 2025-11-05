@@ -72,6 +72,7 @@ module mmult_small_tb();
   string output_string;
   initial begin
 
+    $readmemh("../../software/bios/bios.hex", `BIOS_PATH.mem, 0, 4095);
     $readmemh("../../software/mmult_small/mmult.hex", `IMEM_PATH.mem, 0, 16384-1);
     $readmemh("../../software/mmult_small/mmult.hex", `DMEM_PATH.mem, 0, 16384-1);
 
