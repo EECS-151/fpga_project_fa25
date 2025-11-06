@@ -26,7 +26,8 @@ elements = {'LUT6': 1713,
             'BUFG': 0,
             'SRL16E': 429,
             'PLLE2_ADV': 0,
-            'OBUF': 0
+            'OBUF': 0,
+            'DSP48E1': 453_659
             }
 
 def get_cost(f):

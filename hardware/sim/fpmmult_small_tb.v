@@ -1,10 +1,7 @@
 `timescale 1ns/1ns
 `include "mem_path.vh"
 
-// This testbench consolidates all the software tests that relies on the CSR check.
-// A software test is compiled to a hex file, then loaded to the testbench for simulation.
-// All the software tests have the same CSR check: if the expected result matches
-// the generated result, 1 is written to the CSR which indicates a passing status.
+// A small version of the fpmmult test for debugging and unofficial CPI reporting
 
 module fpmmult_small_tb();
   reg clk, rst;
@@ -73,8 +70,8 @@ module fpmmult_small_tb();
   initial begin
 
     $readmemh("../../software/bios/bios.hex", `BIOS_PATH.mem, 0, 4095);
-    $readmemh("../../software/fpmmult_small/fpmmult.hex", `IMEM_PATH.mem, 0, 16384-1);
-    $readmemh("../../software/fpmmult_small/fpmmult.hex", `DMEM_PATH.mem, 0, 16384-1);
+    $readmemh("../../software/small/fpmmult/fpmmult.hex", `IMEM_PATH.mem, 0, 16384-1);
+    $readmemh("../../software/small/fpmmult/fpmmult.hex", `DMEM_PATH.mem, 0, 16384-1);
 
     `ifndef IVERILOG
       $vcdpluson;
@@ -95,10 +92,21 @@ module fpmmult_small_tb();
     // Delay for some time
     repeat (1000) @(posedge clk);
 
-    repeat (156) fpga_to_host();
+    fork 
 
-    $display("[TEST] This test multiplies a 4x4 identity matrix (A) by a 4x4 matrix (B) where B[i, j] = j. The result is stored in S");
-    $display("[TEST] Expecting result of 41c00000");
+      begin
+        $display("[TEST] This test multiplies a 4x4 identity matrix (A) by a 4x4 matrix (B) where B[i, j] = j. The result is stored in S");
+        $display("[TEST] Expecting result of 41c00000");
+        repeat (156) fpga_to_host();
+      end
+
+      begin
+        repeat (TIMEOUT_CYCLE) @(posedge clk);
+        $display("[TEST] WARNING: Timeout while waiting for BIOS to finish\n");
+      end
+
+    join_any
+
     $display("[TEST] BIOS output...\n");
 
     output_string = "";
@@ -126,12 +134,7 @@ module fpmmult_small_tb();
         $display("S: %d, %d: %x", i, j, `DMEM_PATH.mem[2224/4 + i * 4 + j]);
       end
     end
-    $finish();
-  end
-
-  initial begin
-    repeat (TIMEOUT_CYCLE) @(posedge clk);
-    $display("Timeout!");
+    
     $finish();
   end
 
