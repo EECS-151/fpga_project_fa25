@@ -1,10 +1,9 @@
 #include "types.h"
-#include "memory_map.h"
 #include "benchmark.h"
 #include "ascii.h"
 #include "uart.h"
 
-#define N 3
+#define N 2
 #define MAT_SIZE (1 << (N << 1))
 #define DIM_SIZE (1 << N)
 static int32_t A[MAT_SIZE] = {0};
@@ -67,15 +66,12 @@ void generate_matrices() {
     }
 }
 
-#define CONST 0x000000e0
 
 typedef void (*entry_t)(void);
 
 int main(int argc, char**argv) {
     generate_matrices();
     run_and_time(&mmult);
-    csr_tohost(CONST);
-    csr_tohost(0);
     // go back to the bios - using this function causes a jr to the addr,
     // the compiler "jals" otherwise and then cannot set PC[31:28]
     uint32_t bios = ascii_hex_to_uint32("40000000");

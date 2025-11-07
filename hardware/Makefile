@@ -89,6 +89,19 @@ mmult-test: sim/c_tests/mmult.fst
 
 ### END UNUSED TESTS
 
+small-tests: clean-sim sim/mmult_small_tb.vpd sim/bdd_small_tb.vpd sim/fpmmult_small_tb.vpd
+
+submission: program clean-sim
+	mkdir -p ./submission
+	./run_all_sims -c > ./submission/run_all_sims_result.txt
+	./scripts/fom.py -r > ./submission/fom.txt
+	mkdir -p ./submission/src
+	cp ./src ./submission/src -r
+	cp ./scripts/impl.tcl ./submission/impl.tcl
+	cp ./scripts/synth.tcl ./submission/synth.tcl
+	python3 ./scripts/pre_autograder.py
+	zip -r submission.zip ./submission > /dev/null 2>&1
+	rm -rf ./submission
 
 build/target.tcl: $(RTL) $(CONSTRAINTS)
 	mkdir -p build

@@ -47,7 +47,8 @@ parser.add_argument('--com_name', action='store', default='COM11')
 
 parser.add_argument('-c', '--cost', action='store', type=int)
 parser.add_argument('-f', '--fmax', action='store', type=float, help='in MegaHertz, int or float')
-parser.add_argument('-p', '--cpi', action='store' , type=float)
+parser.add_argument('-icpi', '--integer-cpi', action='store' , type=float)
+parser.add_argument('-fcpi', '--fp-cpi', action='store' , type=float)
 
 args = parser.parse_args()
 
@@ -57,25 +58,28 @@ if (args.urpt is None) != (args.trpt is None):
 if args.synth and args.impl:
   print('specify none or either of -s or -i')
   exit()
-if not(args.cpi is None) and args.run:
-  print('specify none or either of -p or -r')
+if (args.integer_cpi is not None or args.fp_cpi is not None) and args.run:
+  print('cannot specify -r and -icpi or -fcpi')
   exit()
+
+# synthesis timing report does not mean anything
+# never use it
 
 if not(args.urpt is None):
   u, t = open_rpts(args.urpt, args.trpt, args.cost, args.fmax)
-elif args.synth:
-  u, t = open_rpts(surpt, strpt, args.cost, args.fmax)
-elif args.impl:
-  u, t = open_rpts(iurpt, itrpt, args.cost, args.fmax)
 elif os.path.isfile(surpt) and os.path.isfile(iurpt):
   if os.path.getmtime(surpt) > os.path.getmtime(iurpt):
     u, t = open_rpts(surpt, strpt, args.cost, args.fmax)
   else:
     u, t = open_rpts(iurpt, itrpt, args.cost, args.fmax)
-elif os.path.isfile(surpt):
-  u, t = open_rpts(surpt, strpt, args.cost, args.fmax)
+elif args.synth:
+  u, t = open_rpts(surpt, itrpt, args.cost, args.fmax)
+elif args.impl:
+  u, t = open_rpts(iurpt, itrpt, args.cost, args.fmax)
 elif os.path.isfile(iurpt):
   u, t = open_rpts(iurpt, itrpt, args.cost, args.fmax)
+elif os.path.isfile(surpt):
+  u, t = open_rpts(surpt, itrpt, args.cost, args.fmax)
 else:
   u, t = None, None
 
@@ -96,22 +100,26 @@ else:
   fmax = args.fmax
 
 if args.run:
-  cpi = get_cpi(args.port_name, args.com_name)
-elif args.cpi is None:
-  cpi = get_cpi_sim()
-else:
-  cpi = args.cpi
+  integer_cpi, fp_cpi = get_cpi(args.port_name, args.com_name)
+elif args.integer_cpi is None or args.fp_cpi is None:
+  integer_cpi, fp_cpi = get_cpi_sim()
 
-scale = 1000000.0
+if args.integer_cpi:
+  integer_cpi = args.integer_cpi
+if args.fp_cpi:
+  fp_cpi = args.fp_cpi
+
+scale = 1000.0
 fmax_weight = 1
 cpi_weight = 1
 cost_weight = 0.5
 
-fom = (1000.0 * (fmax ** fmax_weight)) / (cpi ** cpi_weight) / (cost ** cost_weight)
+fom = (scale * (fmax ** fmax_weight)) / (integer_cpi ** cpi_weight) / (fp_cpi ** cpi_weight) / (cost ** cost_weight)
 
 print('')
 print('Fmax: ' + str(fmax))
-print("CPI: {:.2f}".format(cpi))
+print("Integer CPI: {:.2f}".format(integer_cpi))
+print("Floating Point CPI: {:.2f}".format(fp_cpi))
 print('Cost: ' + str(cost))
 print('')
 if args.run:
