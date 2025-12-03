@@ -3,8 +3,6 @@ import os
 import sys
 import re
 
-error_map = ["", "Invalid component synthesized. Please contact TA.", "Timing violation", "CPI tests are timing out"]
-
 def output_test_results(base, verbose=False):
     test_results = {}
     with open(f"{base}/run_all_sims_result.txt") as f:
@@ -46,6 +44,10 @@ def output_fom_results(fom_file, verbose=False):
                 if verbose:
                     print("ERROR: CPI tests timed out")
                 errors = 3 
+            if "Error: Integer" in line or "Error: Floating" in line:
+                errors = 3
+                if verbose:
+                    print("ERROR: Instruction counter does not match expected results")
             for k in lines:
                 if line.startswith(lines[k]):
                     data[k] = float(line[len(lines[k]):])
